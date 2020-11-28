@@ -1,6 +1,7 @@
-import { showHint, input, hint } from "./functions/showHint.js";
+import { showHint } from "./functions/showHint.js";
 import { showLocalForecast } from "./functions/showLocal.js";
-
+const input = document.querySelector(".search__field");
+const hint = document.querySelector(".hint");
 const showLocalForecastButton = document.querySelector(".local__button");
 
 input.addEventListener("input", showHint);
@@ -15,3 +16,4 @@ function closeHint(e) {
 }
 
 export { showLocalForecastButton };
+export { input, hint };

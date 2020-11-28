@@ -1,23 +1,32 @@
 import { showHint } from "./functions/showHint.js";
-import { showLocalForecastButton } from "./index.js";
 import { showLocalForecast } from "./functions/showLocal.js";
-// import { showForecast } from "./functions/historyAPI.js";
+import { showLocalForecastButton } from "./index.js";
 
-const linkAPIFuture = "http://api.openweathermap.org/data/2.5/forecast?q=";
-const linkAPICurrent = "http://api.openweathermap.org/data/2.5/weather?q=";
+const linkAPI = "https://api.openweathermap.org/data/2.5/onecall?";
 const userKey = "0a3b4d1b5edcc4fdf23c2763d08dc233";
-// const cityLondon = "London,uk";
 const currentCityKey = "CURRENT_CITY";
-const city = getCity(currentCityKey);
-const content = document.querySelector(".card__main");
+const currentCityInfo = getCityinfo(currentCityKey);
+const content = document.querySelector(".weather__main");
 const tabs = document.querySelectorAll(".nav-link");
-const cityInput = document.querySelector("#exampleInputEmail1");
+const cityInput = document.querySelector(".search__field");
+const showForecastButtons = document.querySelectorAll(".show-forecast");
 const date = new Date();
+const currentCitydateNumber = +new Date();
+let activeTab = document.querySelector(".active");
 let currentHours;
+let currentDay;
 let hours;
 
-getCityForecast();
-getHoursForecast();
+content.innerHTML = "";
+getCityForecast(currentCityInfo, activeTab);
+
+showForecastButtons.forEach((day) =>
+  day.addEventListener("click", (e) => {
+    e.preventDefault();
+    activeTab = document.querySelector(".active");
+    getCityForecast(currentCityInfo, activeTab);
+  })
+);
 
 showLocalForecastButton.addEventListener("click", showLocalForecast);
 
@@ -27,127 +36,187 @@ tabs.forEach((tab) => {
   tab.addEventListener("click", doActiveTab);
 });
 
-async function getCityForecast() {
-  let response = await fetch(`${linkAPICurrent}${city}&appid=${userKey}`);
+async function getCityForecast(cityInfo, tab) {
+  content.innerHTML = "";
+  let response = await fetch(
+    `${linkAPI}lat=${cityInfo.coord.lat}&lon=${cityInfo.coord.lon}&exclude=minutely,alerts&appid=${userKey}`
+  );
   if (response.ok) {
     const json = await response.json();
-    const city = json.name;
-    const country = json.sys.country;
-    const temp = Math.round(json.main.temp - 273);
-    const tempFeelsLike = Math.round(json.main["feels_like"] - 273);
-    const humidity = json.main.humidity;
-    const pressure = json.main.pressure;
-    const wind = json.wind.speed.toFixed(1);
-    const windDegree = json.wind.deg;
-    const visibility = json.visibility;
-    const icon = json.weather[0].icon;
-    const weatherDescription = json.weather[0].description;
-    const timezone = json.timezone;
+    const timezone = json.timezone_offset;
+    let weatherData = [];
+    const sections = [];
+    const allHourlyData = json.hourly;
+    let index;
 
-    drawSingleForecast(
-      city,
-      country,
-      temp,
-      icon,
-      weatherDescription,
-      tempFeelsLike,
-      humidity,
-      pressure,
-      wind,
-      windDegree,
-      visibility,
-      timezone
-    );
+    currentHours = setCurrentDate(timezone).slice(0, 2);
+
+    if (tab.closest("li").classList.contains("today")) {
+      weatherData = json.current;
+      index = allHourlyData.findIndex(
+        (hour) =>
+          getHourByDataText(hour.dt).toString().slice(16, 18) >= currentHours &&
+          getHourByDataText(hour.dt).toString().slice(8, 10) >= currentDay
+      );
+    }
+
+    if (tab.closest("li").classList.contains("tomorrow")) {
+      weatherData = json.daily[1];
+      index = allHourlyData.findIndex(
+        (hour) =>
+          getHourByDataText(hour.dt).toString().slice(16, 18) == 0 &&
+          getHourByDataText(hour.dt).toString().slice(8, 10) == currentDay
+      );
+    }
+
+    if (index >= 0) {
+      sections.push(
+        allHourlyData[index],
+        allHourlyData[index + 4],
+        allHourlyData[index + 8],
+        allHourlyData[index + 12],
+        allHourlyData[index + 16],
+        allHourlyData[index + 20]
+      );
+
+      drawSingleForecast(cityInfo, weatherData, timezone);
+      drawHourTemp(sections);
+    }
+
+    if (tab.closest("li").classList.contains("three-days")) {
+      weatherData = json.daily.slice(1, 4);
+      weatherData.forEach((day) => drawSingleForecast(cityInfo, day, timezone));
+    }
   } else {
     alert("HTTP error: " + response.status);
   }
 }
 
-function getCity(key) {
-  const currentCity = localStorage.getItem(key);
-  return currentCity;
-}
+function drawSingleForecast(cityInfo, weatherData, timezone) {
+  const city = cityInfo.name;
+  const country = cityInfo.country;
+  const currentTemp = weatherData.temp.day
+    ? Math.round(weatherData.temp.day - 273)
+    : Math.round(weatherData.temp - 273);
+  const tempFeelsLike = weatherData["feels_like"].day
+    ? Math.round(weatherData["feels_like"].day - 273)
+    : Math.round(weatherData.temp - 273);
+  const humidity = weatherData.humidity;
+  const pressure = weatherData.pressure;
+  const wind = weatherData["wind_speed"].toFixed(1);
+  const windDegree = weatherData["wind_deg"];
+  const visibility = weatherData.visibility / 1000 || "";
+  const icon = weatherData.weather[0].icon;
+  const weatherDescription = weatherData.weather[0].description;
 
-function drawSingleForecast(
-  city,
-  country,
-  temp,
-  icon,
-  weatherDescription,
-  tempFeelsLike,
-  humidity,
-  pressure,
-  wind,
-  windDegree,
-  visibility,
-  timezone
-) {
   const card = document.createElement("div");
   const time = setCurrentDate(timezone);
-  card.classList.add("card-body", "col-md-5");
+  card.classList.add("card-body", "col-md-4", "weather");
   card.innerHTML = `
   <h5 class="card-text">Local time ${time}</h5>
   <h1 class="card-title">${city}, ${country}</h1>
-  <div class="card__info d-flex justify-content-center align-items-center">
+  <div class="weather__info d-flex justify-content-center align-items-center">
     <img
       class="weather__icon"
       src="./assets/images/temp.svg"
       alt=""
-    /><span class="card__temp ${temp > 0 ? "card__temp-hot" : "card__temp-cold"}
+    /><span class="weather__temp ${
+      currentTemp > 0 ? "weather__temp-hot" : "weather__temp-cold"
+    }
     
-    } ">${addPlusToTemp(temp)}&deg;C</span>
+    } ">${addPlusToTemp(currentTemp.toString())}&deg;C</span>
   </div>
-  <div class="card__info">
-    <img class="card__ico" src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="" />
+  <div class="weather__info">
+    <img class="weather__picture" src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="" />
     <span>${weatherDescription}</span>
   </div>
-  <div class="card__info">
+  <div class="weather__info">
     <img class="weather__icon" src="./assets/images/360.svg" alt="" />Feels
     like: ${addPlusToTemp(tempFeelsLike)}&degC
   </div>
-  <div class="card__info">
+  <div class="weather__info">
     <img
       class="weather__icon"
       src="./assets/images/humidity.svg"
       alt=""
     />Humidity: ${humidity}%
   </div>
-  <div class="card__info">
+  <div class="weather__info">
     <img
       class="weather__icon"
       src="./assets/images/pressure.svg"
       alt=""
     />Pressure: ${Math.round(pressure * 0.75)}mmHg
   </div>
-  <div class="card__info">
+  <div class="weather__info">
     <img
       class="weather__icon"
       src="./assets/images/wind-direction.svg"
       alt=""
     />Wind: ${wind} m/sec, ${setWindDirection(windDegree)}
   </div>
-  <div class="card__info">
+  <div class="weather__info">
     <img
       class="weather__icon"
       src="./assets/images/eye.svg"
       alt=""
-    />Visibility: ${visibility / 1000}km
+    />Visibility: ${visibility}${visibility ? "km" : "-"}
   </div>
   `;
   content.appendChild(card);
 }
 
-function doActiveTab() {
-  tabs.forEach((tab) => {
-    tab.classList.remove("active");
+function drawHourTemp(hours) {
+  const card = document.createElement("div");
+  card.classList.add(
+    "card-body",
+    "col-md-8",
+    "d-flex",
+    "justify-content-between",
+    "flex-wrap",
+    "align-self-start"
+  );
+  hours.forEach((hour) => {
+    const period = document.createElement("div");
+    period.classList.add("card__row", "align-self-start");
+    period.innerHTML = `
+    <div class="card__time">${getHourByDataText(hour.dt)
+      .toString()
+      .slice(16, 21)}</div>
+    <div class = "hour__date">
+    ${getHourByDataText(hour.dt).toString().slice(8, 10)}, ${getHourByDataText(
+      hour.dt
+    )
+      .toString()
+      .slice(4, 7)}
+    </div>
+    <div class = "d-flex">
+    <img class="hour__icon "
+      src="https://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png"
+      alt=""
+    />
+    </div>
+    <div class="hour__temp">${addPlusToTemp(
+      Math.round(hour.temp - 273)
+    )}&deg;C</div>
+    <div class="weather__wind">
+      <img class="weather__img" src="./assets/images/wind-direction.svg" alt="" />
+      <span class="weather__value">${hour["wind_speed"].toFixed(1)}m/sec</span>
+    </div>
+    `;
+    card.appendChild(period);
   });
-  this.classList.add("active");
+  const adsBlock = document.createElement("div");
+  adsBlock.classList.add("weather__ads");
+  adsBlock.innerHTML = "Here may be your ads";
+  card.appendChild(adsBlock);
+  content.appendChild(card);
 }
 
 function setCurrentDate(timezone) {
   hours = date.getHours();
   let minutes = date.getMinutes();
-  let day = date.getDate();
+  currentDay = date.getDate();
   const timeLondon = hours - 3;
   currentHours = timeLondon + timezone / 3600;
   if (currentHours < 0) {
@@ -155,7 +224,7 @@ function setCurrentDate(timezone) {
   }
   if (currentHours >= 24) {
     currentHours -= 24;
-    ++day;
+    ++currentDay;
   }
   if (!isInteger(currentHours)) {
     currentHours -= 0.5;
@@ -166,20 +235,32 @@ function setCurrentDate(timezone) {
     }
   }
 
-  const time = `${currentHours}:${getFormatedDate(
+  document.querySelector(".active").closest("li").classList.contains("tomorrow")
+    ? ++currentDay
+    : null;
+
+  document
+    .querySelector(".active")
+    .closest("li")
+    .classList.contains("three-days")
+    ? ++currentDay
+    : null;
+
+  const time = `${getFormatedDate(currentHours)}:${getFormatedDate(
     minutes
-  )} ${day}.${getFormatedDate(date.getMonth() + 1)}.${getFormatedDate(
+  )} ${currentDay}.${getFormatedDate(date.getMonth() + 1)}.${getFormatedDate(
     date.getFullYear()
   )}`;
   return time;
 }
 
-function getFormatedDate(time) {
-  return time < 10 ? "0" + time : time;
+function isInteger(num) {
+  return (num ^ 0) === num;
 }
 
-function addPlusToTemp(temp) {
-  return temp > 0 ? "+" + temp : temp;
+function getHourByDataText(dataText) {
+  const date = new Date(dataText * 1000);
+  return date;
 }
 
 function setWindDirection(degree) {
@@ -202,67 +283,29 @@ function setWindDirection(degree) {
   return direction;
 }
 
-async function getHoursForecast() {
-  let response = await fetch(`${linkAPIFuture}${city}&appid=${userKey}`);
-  if (response.ok) {
-    const json = await response.json();
-    console.log(json);
-    const days = await json.list;
-    let daysForHourly;
-
-    let index = days.findIndex(
-      (day) =>
-        currentHours - day.dt_txt.slice(-8, -6) < 3 &&
-        currentHours - day.dt_txt.slice(-8, -6) >= 0
-    );
-    if (index < 7) {
-      daysForHourly = days.slice(index, 5 + index);
-      drawHourTemp(daysForHourly);
-      console.log(daysForHourly);
-    } else {
-      // days.forEach(day=>)
-    }
-  } else {
-    alert("HTTP error: " + response.status);
-  }
+function getFormatedDate(time) {
+  return time < 10 ? "0" + time : time;
 }
 
-function drawHourTemp(hours) {
-  const card = document.createElement("div");
-  card.classList.add(
-    "card-body",
-    "col-md-7",
-    "d-flex",
-    "justify-content-between",
-    "flex-wrap"
-  );
-  hours.forEach((hour) => {
-    const period = document.createElement("div");
-    period.classList.add("card__row");
-    period.innerHTML = `
-    <div class="card__time">${hour.dt_txt.slice(-8, -3)}</div>
-    <div class = "card__date">
-      ${hour.dt_txt.slice(8, 10)}/${hour.dt_txt.slice(5, 7)}
-    </div>
-    <div class = "d-flex">
-    <img class="card__weather "
-      src="https://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png"
-      alt=""
-    />
-    </div>
-    <div class="card__hour">${addPlusToTemp(
-      Math.round(hour.main.temp - 273)
-    )}&deg;C</div>
-    <div class="weather__wind">
-      <img class="weather__img" src="./assets/images/wind-direction.svg" alt="" />
-      <span class="weather__value">${hour.wind.speed.toFixed(1)}m/sec</span>
-    </div>
-    `;
-    card.appendChild(period);
+function addPlusToTemp(temp) {
+  return temp > 0 ? "+" + temp : temp;
+}
+
+function getCityinfo(key) {
+  const currentCity = JSON.parse(localStorage.getItem(key));
+  return currentCity;
+}
+
+function doActiveTab() {
+  tabs.forEach((tab) => {
+    tab.classList.remove("active");
   });
-  content.appendChild(card);
+  this.classList.add("active");
 }
 
-function isInteger(num) {
-  return (num ^ 0) === num;
+export { currentCityKey };
+
+function getCurrentCityDateNumber(dateNumber, timezone) {
+  const date = new Date((dateNumber + timezone - 10800) * 1000);
+  return +date;
 }

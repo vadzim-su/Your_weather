@@ -1,4 +1,5 @@
-import { saveCityToLocalSrorage } from "./saveCity.js";
+import { saveCityInfo } from "./saveCityInfo.js";
+const currentCityKey = "CURRENT_CITY";
 
 function showLocalForecast() {
   if (navigator.geolocation) {
@@ -22,7 +23,7 @@ async function findCity(lat, lon) {
         Math.trunc(city.coord.lat) === Math.trunc(lat) &&
         Math.trunc(city.coord.lon) === Math.trunc(lon)
     );
-    saveCityToLocalSrorage("CURRENT_CITY", city.name);
+    saveCityInfo(currentCityKey, city);
   } else {
     alert("HTTP error: " + response.status);
   }

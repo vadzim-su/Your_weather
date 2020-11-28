@@ -1,7 +1,8 @@
+import { saveCityInfo } from "./saveCityInfo.js";
 import { chooseCity } from "./chooseCity.js";
-const input = document.querySelector(".search__field");
-const hint = document.querySelector(".hint");
-let cities = [];
+import { input } from "../../scripts/index.js";
+import { hint } from "../../scripts/index.js";
+const currentCityKey = "CURRENT_CITY";
 
 function showHint() {
   hint.innerHTML = "";
@@ -9,21 +10,21 @@ function showHint() {
     fetch("../../assets/data/cityList.json")
       .then((data) => data.json())
       .then((data) =>
-        data.forEach((city) => cities.push(city.name + ", " + city.country))
-      )
-      .then(() =>
-        cities.forEach((city) => {
-          if (city.toLowerCase().startsWith(input.value.toLowerCase())) {
+        data.forEach((city) => {
+          if (city.name.toLowerCase().startsWith(input.value.toLowerCase())) {
             let singleCity = document.createElement("li");
             singleCity.classList.add("hint__item");
             hint.classList.add("hint__show");
-            singleCity.innerHTML = city;
+            singleCity.innerHTML = city.name + ", " + city.country;
             hint.appendChild(singleCity);
-            singleCity.addEventListener("click", chooseCity);
+            singleCity.addEventListener("click", (e) => {
+              saveCityInfo(currentCityKey, city);
+              chooseCity(e);
+              location.href = "../../../main.html";
+            });
           }
         })
-      )
-      .then(() => (cities = []));
+      );
   } else {
     hint.classList.remove("hint__show");
   }

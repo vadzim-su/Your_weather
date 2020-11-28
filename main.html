@@ -27,13 +27,13 @@
           class="card-header d-flex align-items-baseline justify-content-between"
         >
           <ul class="nav nav-tabs card-header-tabs align-self-end">
-            <li class="nav-item">
+            <li class="nav-item today show-forecast">
               <a class="nav-link active" href="#"> Today </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item tomorrow show-forecast">
               <a class="nav-link" href="#"> Tomorrow </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item three-days show-forecast">
               <a class="nav-link" href="#"> 3 Days </a>
             </li>
           </ul>
@@ -46,17 +46,20 @@
               placeholder="Search forecast for another city"
               autocomplete="off"
             />
-            <button class="btn btn-light card__button d-flex local__button">
+            <button
+              class="btn btn-light d-flex local__button"
+              title="show local forecast"
+            >
               <img
-                class="card__location"
+                class="local__icon"
                 src="./assets/images/location.svg"
                 alt=""
               />
             </button>
           </div>
-          <ul class="hint hint-list"></ul>
+          <ul class="hint"></ul>
         </div>
-        <div class="d-flex card__main"></div>
+        <div class="d-flex weather__main"></div>
       </div>
     </div>
 
