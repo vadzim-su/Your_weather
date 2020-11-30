@@ -1,7 +1,7 @@
 .start {
   display: flex;
   height: 100vh;
-  background: #ddd;
+  background: #bce0e9;
   position: relative; }
   .start__wrapper {
     display: flex;
@@ -15,7 +15,8 @@
     height: 50vh;
     margin: auto;
     position: relative;
-    padding-bottom: 15px; }
+    padding-bottom: 15px;
+    filter: drop-shadow(10px 10px 5px #78b2b4a8); }
 
 .hint {
   display: none;

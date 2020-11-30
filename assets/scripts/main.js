@@ -3,6 +3,8 @@ import { showLocalForecast } from "./functions/showLocal.js";
 import { showLocalForecastButton } from "./index.js";
 
 const linkAPI = "https://api.openweathermap.org/data/2.5/onecall?";
+const historyAPI =
+  "https://api.openweathermap.org/data/2.5/onecall/timemachine?";
 const userKey = "0a3b4d1b5edcc4fdf23c2763d08dc233";
 const currentCityKey = "CURRENT_CITY";
 const currentCityInfo = getCityinfo(currentCityKey);
@@ -10,12 +12,11 @@ const content = document.querySelector(".weather__main");
 const tabs = document.querySelectorAll(".nav-link");
 const cityInput = document.querySelector(".search__field");
 const showForecastButtons = document.querySelectorAll(".show-forecast");
-const date = new Date();
-const currentCitydateNumber = +new Date();
 let activeTab = document.querySelector(".active");
+let currentCityTime; //now time in chosen city
 let currentHours;
 let currentDay;
-let hours;
+let time;
 
 content.innerHTML = "";
 getCityForecast(currentCityInfo, activeTab);
@@ -38,25 +39,39 @@ tabs.forEach((tab) => {
 
 async function getCityForecast(cityInfo, tab) {
   content.innerHTML = "";
-  let response = await fetch(
+  const response = await fetch(
     `${linkAPI}lat=${cityInfo.coord.lat}&lon=${cityInfo.coord.lon}&exclude=minutely,alerts&appid=${userKey}`
   );
   if (response.ok) {
     const json = await response.json();
     const timezone = json.timezone_offset;
-    let weatherData = [];
-    const sections = [];
     const allHourlyData = json.hourly;
-    let index;
+    const sections = [];
+    let weatherData = [];
+    let index = -1;
+    currentCityTime = getCurrentCityDateNumber(json.current.dt, timezone);
+    currentDay = getHourByDataText(currentCityTime / 1000).getDate();
 
-    currentHours = setCurrentDate(timezone).slice(0, 2);
+    if (timezone <= 10800) {
+      const responseToPast = await fetch(
+        `${historyAPI}lat=${cityInfo.coord.lat}&lon=${cityInfo.coord.lon}&dt=${
+          currentCityTime / 1000 - timezone
+        }&appid=${userKey}`
+      );
+      if (responseToPast.ok) {
+        const jsonHistory = await responseToPast.json();
+        jsonHistory.hourly.splice(-1);
+        jsonHistory.hourly.reverse();
+        jsonHistory.hourly.forEach((item) => allHourlyData.unshift(item));
+      } else {
+        alert("HTTP error: " + response.status);
+      }
+    }
 
     if (tab.closest("li").classList.contains("today")) {
       weatherData = json.current;
       index = allHourlyData.findIndex(
-        (hour) =>
-          getHourByDataText(hour.dt).toString().slice(16, 18) >= currentHours &&
-          getHourByDataText(hour.dt).toString().slice(8, 10) >= currentDay
+        (hour) => hour.dt - currentCityTime / 1000 >= 0
       );
     }
 
@@ -64,27 +79,25 @@ async function getCityForecast(cityInfo, tab) {
       weatherData = json.daily[1];
       index = allHourlyData.findIndex(
         (hour) =>
-          getHourByDataText(hour.dt).toString().slice(16, 18) == 0 &&
-          getHourByDataText(hour.dt).toString().slice(8, 10) == currentDay
+          new Date(hour.dt * 1000).getHours() === 0 &&
+          new Date(hour.dt * 1000).getDate() !== currentDay
       );
     }
-
-    if (index >= 0) {
-      sections.push(
-        allHourlyData[index],
-        allHourlyData[index + 4],
-        allHourlyData[index + 8],
-        allHourlyData[index + 12],
-        allHourlyData[index + 16],
-        allHourlyData[index + 20]
-      );
+    if (index !== -1) {
+      for (
+        let i = 0;
+        index + i < allHourlyData.length && sections.length < 6;
+        i = i + 4
+      ) {
+        sections.push(allHourlyData[index + i]);
+      }
 
       drawSingleForecast(cityInfo, weatherData, timezone);
       drawHourTemp(sections);
     }
 
     if (tab.closest("li").classList.contains("three-days")) {
-      weatherData = json.daily.slice(1, 4);
+      weatherData = json.daily.slice(2, 5);
       weatherData.forEach((day) => drawSingleForecast(cityInfo, day, timezone));
     }
   } else {
@@ -108,9 +121,10 @@ function drawSingleForecast(cityInfo, weatherData, timezone) {
   const visibility = weatherData.visibility / 1000 || "";
   const icon = weatherData.weather[0].icon;
   const weatherDescription = weatherData.weather[0].description;
-
   const card = document.createElement("div");
-  const time = setCurrentDate(timezone);
+  time = setCurrentDate(
+    getCurrentCityDateNumber(weatherData.dt, timezone) / 1000
+  );
   card.classList.add("card-body", "col-md-4", "weather");
   card.innerHTML = `
   <h5 class="card-text">Local time ${time}</h5>
@@ -176,29 +190,23 @@ function drawHourTemp(hours) {
     "flex-wrap",
     "align-self-start"
   );
+
   hours.forEach((hour) => {
     const period = document.createElement("div");
     period.classList.add("card__row", "align-self-start");
     period.innerHTML = `
-    <div class="card__time">${getHourByDataText(hour.dt)
-      .toString()
-      .slice(16, 21)}</div>
-    <div class = "hour__date">
-    ${getHourByDataText(hour.dt).toString().slice(8, 10)}, ${getHourByDataText(
-      hour.dt
-    )
-      .toString()
-      .slice(4, 7)}
+    <div class="card__time">${setCurrentDate(hour.dt).slice(0, 5)}</div>
+    <div class="hour__date">${setCurrentDate(hour.dt).slice(6, 11)}</div>
+    <div class="d-flex">
+      <img
+        class="hour__icon"
+        src="https://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png"
+        alt=""
+      />
     </div>
-    <div class = "d-flex">
-    <img class="hour__icon "
-      src="https://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png"
-      alt=""
-    />
+    <div class="hour__temp">
+      ${addPlusToTemp(Math.round(hour.temp - 273))}&deg;C
     </div>
-    <div class="hour__temp">${addPlusToTemp(
-      Math.round(hour.temp - 273)
-    )}&deg;C</div>
     <div class="weather__wind">
       <img class="weather__img" src="./assets/images/wind-direction.svg" alt="" />
       <span class="weather__value">${hour["wind_speed"].toFixed(1)}m/sec</span>
@@ -206,61 +214,39 @@ function drawHourTemp(hours) {
     `;
     card.appendChild(period);
   });
+
   const adsBlock = document.createElement("div");
   adsBlock.classList.add("weather__ads");
-  adsBlock.innerHTML = "Here may be your ads";
+  adsBlock.innerHTML = "Here can be your ads";
   card.appendChild(adsBlock);
+
   content.appendChild(card);
 }
 
-function setCurrentDate(timezone) {
-  hours = date.getHours();
-  let minutes = date.getMinutes();
-  currentDay = date.getDate();
-  const timeLondon = hours - 3;
-  currentHours = timeLondon + timezone / 3600;
-  if (currentHours < 0) {
-    currentHours += 24;
-  }
-  if (currentHours >= 24) {
-    currentHours -= 24;
-    ++currentDay;
-  }
-  if (!isInteger(currentHours)) {
-    currentHours -= 0.5;
-    minutes += 30;
-    if (minutes > 60) {
-      minutes -= 60;
-      currentHours++;
-    }
-  }
-
-  document.querySelector(".active").closest("li").classList.contains("tomorrow")
-    ? ++currentDay
-    : null;
-
-  document
-    .querySelector(".active")
-    .closest("li")
-    .classList.contains("three-days")
-    ? ++currentDay
-    : null;
+function setCurrentDate(currentDateNumber) {
+  currentDay = getHourByDataText(currentDateNumber).getDate();
+  currentHours = getHourByDataText(currentDateNumber).getHours();
+  let currentMinutes = getHourByDataText(currentDateNumber).getMinutes();
+  let currentMonth = getHourByDataText(currentDateNumber).getMonth() + 1;
+  let currentYear = getHourByDataText(currentDateNumber).getFullYear();
 
   const time = `${getFormatedDate(currentHours)}:${getFormatedDate(
-    minutes
-  )} ${currentDay}.${getFormatedDate(date.getMonth() + 1)}.${getFormatedDate(
-    date.getFullYear()
-  )}`;
-  return time;
-}
+    currentMinutes
+  )} ${getFormatedDate(currentDay)}.${getFormatedDate(
+    currentMonth
+  )}.${currentYear}`;
 
-function isInteger(num) {
-  return (num ^ 0) === num;
+  return time;
 }
 
 function getHourByDataText(dataText) {
   const date = new Date(dataText * 1000);
   return date;
+}
+
+function getCurrentCityDateNumber(dateNumber, timezone) {
+  const date = new Date((dateNumber + timezone - 10800) * 1000);
+  return +date;
 }
 
 function setWindDirection(degree) {
@@ -304,8 +290,3 @@ function doActiveTab() {
 }
 
 export { currentCityKey };
-
-function getCurrentCityDateNumber(dateNumber, timezone) {
-  const date = new Date((dateNumber + timezone - 10800) * 1000);
-  return +date;
-}
