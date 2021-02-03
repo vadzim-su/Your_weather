@@ -1,6 +1,6 @@
-import { showHint } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/functions/showHint.js";
-import { showLocalForecast } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/functions/showLocal.js";
-import { showLocalForecastButton } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/index.js";
+import { showHint } from "./functions/showHint.js";
+import { showLocalForecast } from "./functions/showLocal.js";
+import { showLocalForecastButton } from "./index.js";
 
 const linkAPI = "https://api.openweathermap.org/data/2.5/onecall?";
 const historyAPI =

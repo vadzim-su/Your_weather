@@ -1,5 +1,5 @@
-import { saveCityInfo } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/functions/saveCityInfo.js";
-import { chooseCity } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/functions/chooseCity.js";
+import { saveCityInfo } from "./saveCityInfo.js";
+import { chooseCity } from "./chooseCity.js";
 import { input } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/index.js";
 import { hint } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/index.js";
 const currentCityKey = "CURRENT_CITY";

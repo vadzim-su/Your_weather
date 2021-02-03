@@ -1,4 +1,4 @@
-import { saveCityInfo } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/functions/saveCityInfo.js";
+import { saveCityInfo } from "./saveCityInfo.js";
 const currentCityKey = "CURRENT_CITY";
 
 function showLocalForecast() {

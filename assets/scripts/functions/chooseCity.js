@@ -1,4 +1,4 @@
-import { input } from "https://raw.githubusercontent.com/vadzim-su/Your_weather/dev/assets/scripts/functions/showHint.js";
+import { input } from "./showHint.js";
 
 function chooseCity(e) {
   let target = e.target;
