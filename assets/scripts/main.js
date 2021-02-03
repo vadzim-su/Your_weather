@@ -1,6 +1,6 @@
-import { showHint } from "./functions/showHint.js";
-import { showLocalForecast } from "./functions/showLocal.js";
-import { showLocalForecastButton } from "./index.js";
+import { showHint } from "https://github.com/vadzim-su/Your_weather/blob/master/assets/scripts/functions/showHint.js";
+import { showLocalForecast } from "https://github.com/vadzim-su/Your_weather/blob/master/assets/scripts/functions/showLocal.js";
+import { showLocalForecastButton } from "https://github.com/vadzim-su/Your_weather/blob/master/assets/scripts/index.js";
 
 const linkAPI = "https://api.openweathermap.org/data/2.5/onecall?";
 const historyAPI =
@@ -13,7 +13,7 @@ const tabs = document.querySelectorAll(".nav-link");
 const cityInput = document.querySelector(".search__field");
 const showForecastButtons = document.querySelectorAll(".show-forecast");
 let activeTab = document.querySelector(".active");
-let currentCityTime; //now time in chosen city
+let currentCityTime;
 let currentHours;
 let currentDay;
 let time;

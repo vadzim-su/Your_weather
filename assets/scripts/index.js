@@ -1,6 +1,8 @@
-import { showHint } from "./functions/showHint.js";
-import { showLocalForecast } from "./functions/showLocal.js";
-const input = document.querySelector(".search__field");
+import { showHint } from "https://github.com/vadzim-su/Your_weather/blob/master/assets/scripts/functions/showHint.js";
+import { showLocalForecast } from "https://github.com/vadzim-su/Your_weather/blob/master/assets/scripts/functions/showLocal.js";
+const input = document.querySelector(
+  "https://github.com/vadzim-su/Your_weather/blob/master/assets/scripts/index.js"
+);
 const hint = document.querySelector(".hint");
 const showLocalForecastButton = document.querySelector(".local__button");
 
